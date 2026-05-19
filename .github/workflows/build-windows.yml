@@ -49,6 +49,9 @@ jobs:
       - name: Build renderer + Electron main
         run: npx electron-vite build
 
+      - name: Verify build artifacts
+        run: node scripts/verify-build.js
+
       - name: Package — NSIS installer + portable
         run: npx electron-builder --win nsis portable --x64
         env:

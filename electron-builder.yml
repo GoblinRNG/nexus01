@@ -8,7 +8,6 @@ directories:
 
 files:
   - out/**/*
-  - dist/**/*
 
 win:
   target:

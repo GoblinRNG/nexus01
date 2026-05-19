@@ -9,6 +9,21 @@ import { fetchHiscores, fetchItemPrice } from './bridge/apiSync'
 let mainWindow: BrowserWindow | null = null
 let watchInterval: ReturnType<typeof setInterval> | null = null
 
+const FALLBACK_HTML = `<!DOCTYPE html>
+<html style="background:#070c14;color:#c8a96e;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+<body style="text-align:center;padding:2rem">
+  <div>
+    <h1 style="color:#c8a96e;font-size:1.5rem;margin-bottom:1rem">Gielinor Nexus — Renderer Load Failed</h1>
+    <p id="msg" style="color:#ef4444;max-width:600px;word-break:break-all"></p>
+    <p style="color:#6b7280;margin-top:1rem;font-size:0.85rem">Check DevTools console for details. Re-install the app if this persists.</p>
+  </div>
+  <script>
+    const p = document.getElementById('msg')
+    const q = new URLSearchParams(location.search)
+    p.textContent = q.get('err') || 'Unknown load error'
+  </script>
+</body></html>`
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width:           1440,
@@ -28,15 +43,41 @@ function createWindow() {
     title:         'Gielinor Nexus — RS3 Companion',
   })
 
+  // ── Diagnostics ─────────────────────────────────────────────────────────────
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('[nexus] renderer loaded successfully')
+  })
+
+  mainWindow.webContents.on('did-fail-load', (_evt, errorCode, errorDescription, validatedURL) => {
+    console.error(`[nexus] renderer load failed — code=${errorCode} desc=${errorDescription} url=${validatedURL}`)
+    const errMsg = encodeURIComponent(`${errorDescription} (${errorCode}) — ${validatedURL}`)
+    mainWindow?.webContents.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(FALLBACK_HTML).replace('q.get(%27err%27)', `'${errMsg}'`)}`)
+  })
+
+  mainWindow.webContents.on('render-process-gone', (_evt, details) => {
+    console.error('[nexus] render process gone —', details.reason, 'exitCode:', details.exitCode)
+  })
+
+  mainWindow.webContents.on('console-message', (_evt, level, message, line, sourceId) => {
+    const prefix = ['verbose', 'info', 'warning', 'error'][level] ?? 'log'
+    console.log(`[renderer:${prefix}] ${message}  (${sourceId}:${line})`)
+  })
+
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
   })
 
   if (is.dev && process.env.ELECTRON_RENDERER_URL) {
+    console.log('[nexus] dev mode — loading', process.env.ELECTRON_RENDERER_URL)
     mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
     mainWindow.webContents.openDevTools({ mode: 'detach' })
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    // electron-vite default renderer output: out/renderer/index.html
+    // __dirname = out/main/  →  ../renderer/index.html = out/renderer/index.html
+    const rendererPath = join(__dirname, '../renderer/index.html')
+    console.log('[nexus] production mode — loading', rendererPath)
+    mainWindow.loadFile(rendererPath)
   }
 }
 
@@ -118,7 +159,6 @@ ipcMain.handle('screen:select-region', async () => {
 function startBridgePolling() {
   watchInterval = setInterval(async () => {
     if (!mainWindow || mainWindow.isDestroyed()) return
-    const status = await ipcMain.emit('bridge:status', null)
     const result = await pollStatus()
     mainWindow.webContents.send('bridge:status-update', result)
   }, 5000)
