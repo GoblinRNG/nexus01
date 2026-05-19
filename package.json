@@ -2,7 +2,7 @@
   "name": "gielinor-nexus",
   "version": "1.0.0",
   "description": "RS3 Companion - Safe, local desktop companion for RuneScape 3",
-  "main": "dist-electron/main.js",
+  "main": "out/main/main.js",
   "author": "GielinorNexus",
   "license": "MIT",
   "scripts": {

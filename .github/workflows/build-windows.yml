@@ -1,0 +1,86 @@
+name: Build Windows Installer
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Unit Tests (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Type-check
+        run: npm run typecheck
+
+  build-windows:
+    name: Build Windows App
+    runs-on: windows-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build renderer + Electron main
+        run: npx electron-vite build
+
+      - name: Package — NSIS installer + portable
+        run: npx electron-builder --win nsis portable --x64
+        env:
+          # Prevent electron-builder from trying to publish
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List release artifacts
+        shell: pwsh
+        run: Get-ChildItem -Recurse release\ | Select-Object FullName, Length
+
+      - name: Upload NSIS installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: GielinorNexus-Setup-${{ github.sha }}
+          path: release/**/*Setup*.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload portable executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: GielinorNexus-Portable-${{ github.sha }}
+          path: |
+            release/**/*.exe
+            !release/**/*Setup*.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload full release folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: GielinorNexus-Release-${{ github.sha }}
+          path: release/
+          if-no-files-found: error
+          retention-days: 30
