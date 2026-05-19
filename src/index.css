@@ -3,82 +3,124 @@
 @tailwind utilities;
 
 @layer base {
-  * {
-    box-sizing: border-box;
+  * { box-sizing: border-box; }
+
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
   }
 
   body {
     background-color: #070c14;
     color: #a8bdd0;
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    min-height: 100vh;
-    margin: 0;
-    padding: 0;
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
   }
 
-  ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-  }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: #060d18; }
+  ::-webkit-scrollbar-thumb { background: #1a3050; border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: #00c8e0; }
 
-  ::-webkit-scrollbar-track {
-    background: #0d1520;
+  input, select, textarea {
+    background: #0f1a2a;
+    border: 1px solid #1a3050;
+    border-radius: 4px;
+    color: #d4e8f8;
+    padding: 4px 8px;
+    font-size: 12px;
+    outline: none;
   }
-
-  ::-webkit-scrollbar-thumb {
-    background: #1a3050;
-    border-radius: 2px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #00c8e0;
+  input:focus, select:focus, textarea:focus {
+    border-color: #00c8e0;
+    box-shadow: 0 0 0 2px rgba(0,200,224,0.15);
   }
 }
 
 @layer components {
   .panel {
-    @apply bg-nexus-panel border border-nexus-border rounded;
+    @apply bg-nexus-panel border border-nexus-border rounded overflow-hidden;
   }
 
   .panel-header {
-    @apply bg-gradient-to-r from-nexus-accent-dim to-transparent border-b border-nexus-border px-3 py-1.5 text-xs font-bold tracking-widest text-nexus-accent uppercase;
+    @apply flex items-center gap-2 px-3 py-1.5 bg-nexus-deep border-b border-nexus-border
+           text-[10px] font-bold tracking-widest text-nexus-accent uppercase;
   }
 
-  .stat-value {
-    @apply text-nexus-text-bright font-bold tabular-nums;
+  .btn {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold
+           transition-all duration-150 cursor-pointer select-none;
   }
 
-  .badge-safe {
-    @apply bg-nexus-green text-white text-xs font-bold px-2 py-0.5 rounded;
+  .btn-primary {
+    @apply btn bg-nexus-accent text-nexus-bg hover:bg-cyan-400 active:scale-95;
   }
 
-  .skill-icon {
-    @apply w-5 h-5 rounded-sm flex items-center justify-center text-[8px] font-bold;
+  .btn-gold {
+    @apply btn bg-nexus-gold text-nexus-bg hover:bg-amber-400 active:scale-95;
   }
 
-  .news-item {
-    @apply flex gap-2 p-2 hover:bg-nexus-card cursor-pointer transition-colors;
+  .btn-ghost {
+    @apply btn bg-transparent border border-nexus-border text-nexus-text
+           hover:border-nexus-accent hover:text-nexus-accent active:scale-95;
   }
 
-  .tab-active {
-    @apply text-nexus-accent border-b-2 border-nexus-accent pb-0.5;
+  .btn-danger {
+    @apply btn bg-red-900/40 border border-red-700 text-red-400
+           hover:bg-red-800/60 active:scale-95;
   }
 
-  .tab-inactive {
-    @apply text-nexus-text hover:text-nexus-text-bright cursor-pointer pb-0.5;
+  .nav-item {
+    @apply flex flex-col items-center gap-0.5 px-2 py-2 rounded cursor-pointer
+           text-nexus-text-dim hover:text-nexus-accent transition-colors text-[9px] font-medium;
+  }
+
+  .nav-item.active {
+    @apply text-nexus-accent bg-nexus-accent/10;
+  }
+
+  .stat-card {
+    @apply panel flex flex-col gap-0.5 px-3 py-2 flex-1 min-w-0;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide;
+  }
+
+  .badge-ocr     { @apply badge bg-nexus-accent/20 text-nexus-accent; }
+  .badge-manual  { @apply badge bg-blue-900/40 text-blue-400; }
+  .badge-runemetrics { @apply badge bg-green-900/40 text-nexus-green; }
+  .badge-bridge  { @apply badge bg-amber-900/40 text-nexus-amber; }
+  .badge-hiscores{ @apply badge bg-purple-900/40 text-nexus-purple; }
+  .badge-ai      { @apply badge bg-purple-900/40 text-nexus-purple; }
+
+  .progress-bar {
+    @apply h-1.5 bg-nexus-deep rounded-full overflow-hidden;
+  }
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-500;
+  }
+
+  .safe-box {
+    @apply border border-nexus-gold/40 rounded p-3 bg-nexus-gold/5
+           text-nexus-gold text-xs;
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 12px rgba(0,200,224,0.25);
+  }
+  .glow-gold {
+    box-shadow: 0 0 12px rgba(240,160,48,0.3);
+  }
+  .glow-green {
+    box-shadow: 0 0 8px rgba(34,197,94,0.3);
   }
 }
 
 @layer utilities {
-  .text-shadow-glow {
-    text-shadow: 0 0 8px currentColor;
-  }
-
-  .glow-accent {
-    box-shadow: 0 0 8px rgba(0, 200, 224, 0.3);
-  }
-
-  .glow-green {
-    box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
-  }
+  .text-glow-accent { text-shadow: 0 0 8px rgba(0,200,224,0.6); }
+  .text-glow-gold   { text-shadow: 0 0 8px rgba(240,160,48,0.6); }
 }

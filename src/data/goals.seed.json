@@ -1,0 +1,56 @@
+[
+  {
+    "id": "necromancy-unlock",
+    "title": "Unlock Necromancy and reach level 20",
+    "description": "Complete the 'Necromancy!' quest to access the Necromancy skill and train to level 20 to unlock basic conjures.",
+    "prerequisites": [
+      "Level 20 Magic",
+      "Level 20 Defence",
+      "Completion of 'Rune Mysteries'",
+      "60 Quest Points"
+    ],
+    "exactAction": "Travel to the City of Um via the portal in Edgeville, then speak to Death to start 'Necromancy!' quest",
+    "currentProgress": 0,
+    "targetProgress": 1,
+    "unit": "quest",
+    "rewards": [
+      "Necromancy skill unlocked",
+      "Access to City of Um",
+      "Death's office teleport",
+      "Conjure Skeleton Warrior (level 1)"
+    ]
+  },
+  {
+    "id": "skills-99-woodcutting",
+    "title": "Reach level 99 Woodcutting",
+    "description": "Train Woodcutting to 99 for the Lumberjack cape and efficient log collection.",
+    "prerequisites": [
+      "Level 1 Woodcutting (starting skill)"
+    ],
+    "exactAction": "Cut Yew logs at Edgeville or Falador until level 85, then switch to Magic trees",
+    "currentProgress": 1,
+    "targetProgress": 99,
+    "unit": "level",
+    "rewards": [
+      "Lumberjack cape",
+      "Access to all tree types",
+      "Efficient log supply for Firemaking/Fletching"
+    ]
+  },
+  {
+    "id": "ge-flipping-start",
+    "title": "Make 1M GP via Grand Exchange flipping",
+    "description": "Learn basic GE flipping to fund further training.",
+    "prerequisites": [
+      "Any level — just need starting GP"
+    ],
+    "exactAction": "Open Grand Exchange, search for high-volume items like Battlestaves, buy low/sell high within 5% margin",
+    "currentProgress": 0,
+    "targetProgress": 1000000,
+    "unit": "gp",
+    "rewards": [
+      "1M GP milestone",
+      "Foundation for expensive skills like Herblore and Invention"
+    ]
+  }
+]

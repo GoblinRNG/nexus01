@@ -1,0 +1,58 @@
+[
+  {
+    "id": "wc-yews",
+    "skill": "Woodcutting",
+    "name": "Yew trees (Edgeville)",
+    "levelRequired": 60,
+    "xpPerHour": 55000,
+    "gpPerHour": 55000,
+    "notes": "Bank at Edgeville bank. Bring best hatchet.",
+    "items": [{ "name": "Yew logs", "role": "output" }]
+  },
+  {
+    "id": "fm-maple-bonfires",
+    "skill": "Firemaking",
+    "name": "Maple logs bonfires (Seers' Village)",
+    "levelRequired": 45,
+    "xpPerHour": 250000,
+    "gpPerHour": -15000,
+    "notes": "Use bonfire for bonus XP. Requires Maple logs.",
+    "items": [{ "name": "Maple logs", "role": "input" }]
+  },
+  {
+    "id": "fletch-arrow-shafts",
+    "skill": "Fletching",
+    "name": "Arrow shafts (Logs → Shafts)",
+    "levelRequired": 1,
+    "xpPerHour": 100000,
+    "gpPerHour": 10000,
+    "notes": "Most profitable low-level Fletching method.",
+    "items": [
+      { "name": "Logs",         "role": "input"  },
+      { "name": "Arrow shafts", "role": "output" }
+    ]
+  },
+  {
+    "id": "cook-sharks",
+    "skill": "Cooking",
+    "name": "Sharks (Hosidius Range)",
+    "levelRequired": 80,
+    "xpPerHour": 350000,
+    "gpPerHour": 80000,
+    "notes": "Low burn rate at 94+. Use Cooking gauntlets.",
+    "items": [
+      { "name": "Raw shark", "role": "input" },
+      { "name": "Shark",     "role": "output" }
+    ]
+  },
+  {
+    "id": "mine-iron",
+    "skill": "Mining",
+    "name": "Iron ore (Al Kharid)",
+    "levelRequired": 15,
+    "xpPerHour": 50000,
+    "gpPerHour": 40000,
+    "notes": "3-rock method. Drop or bank via ores.",
+    "items": [{ "name": "Iron ore", "role": "output" }]
+  }
+]

@@ -1,64 +1,73 @@
-import { CheckCircle, Shield } from 'lucide-react'
+import { CheckCircle, ShieldCheck } from 'lucide-react'
 
-const DATA_POINTS = [
-  'Hiscores (Skills, Bosses, Clues)',
-  'Quest & Achievement Diary log',
-  'Grand Exchange price feeds',
-  'Drop-rate broadcast events',
-  'Party session sharing (opt-in)',
-  'Account security score',
+const DATA_SOURCES = [
+  'HiScores (all 29 RS3 skills)',
+  'RuneMetrics public activity',
+  'Grand Exchange item prices',
+  'RS3 ItemDB sprites & data',
+]
+
+const SAFE_GUARANTEES = [
+  'No memory reading',
+  'No injection or hooking',
+  'No packet sniffing',
+  'No automation or macros',
+  'Read-only public APIs only',
 ]
 
 export function AccountIntegration() {
   return (
-    <section className="flex items-stretch border-t border-nexus-border">
-      {/* Left: data list */}
-      <div className="flex-1 px-4 py-3 border-r border-nexus-border">
-        <h2 className="text-xs font-bold tracking-widest text-nexus-text-bright uppercase mb-2">
-          Account &amp; Data Integration <span className="text-nexus-green">(Safe)</span>
-        </h2>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-          {DATA_POINTS.map((pt) => (
-            <div key={pt} className="flex items-center gap-1.5">
+    <div className="flex h-full items-stretch">
+      <div className="flex flex-col justify-center px-3 py-2 flex-1">
+        <div className="text-[9px] text-nexus-green font-bold uppercase tracking-widest mb-1.5">
+          Account &amp; Data Integration (Safe)
+        </div>
+        <div className="space-y-0.5 mb-2">
+          {DATA_SOURCES.map((s) => (
+            <div key={s} className="flex items-center gap-1.5">
               <CheckCircle size={9} className="text-nexus-green flex-shrink-0"/>
-              <span className="text-[9px] text-nexus-text">{pt}</span>
+              <span className="text-[9px] text-nexus-text">{s}</span>
+            </div>
+          ))}
+        </div>
+        <div className="space-y-0.5">
+          {SAFE_GUARANTEES.map((s) => (
+            <div key={s} className="flex items-center gap-1.5">
+              <CheckCircle size={9} className="text-nexus-accent flex-shrink-0"/>
+              <span className="text-[9px] text-nexus-text">{s}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Right: Jagex 100% SAFE badge */}
-      <div className="flex flex-col items-center justify-center px-6 py-3 gap-2 bg-[#060d18]">
-        <JagexBadge />
-        <div className="text-center">
-          <div className="text-nexus-green font-bold text-sm tracking-widest">100% SAFE</div>
-          <div className="text-[8px] text-nexus-text mt-0.5 max-w-[120px] text-center">
-            No passwords · Read-only API · Jagex approved partner
-          </div>
-        </div>
-        <div className="flex flex-col gap-0.5 text-[8px] text-nexus-text">
-          {['No keyloggers', 'No bots', 'No input injection'].map((s) => (
-            <div key={s} className="flex items-center gap-1">
-              <CheckCircle size={7} className="text-nexus-green"/>
-              <span>{s}</span>
-            </div>
-          ))}
+      <div className="flex flex-col items-center justify-center px-4 py-2 gap-2 border-l border-nexus-border bg-nexus-deep">
+        <JagexHexBadge />
+        <div className="text-nexus-green font-bold text-sm tracking-widest text-glow-accent">100% SAFE</div>
+        <div className="text-[8px] text-nexus-text text-center max-w-[80px]">
+          Jagex TOS compliant · Read-only
         </div>
       </div>
-    </section>
+    </div>
   )
 }
 
-function JagexBadge() {
+function JagexHexBadge() {
   return (
     <div className="relative">
-      <svg viewBox="0 0 60 60" width="52" height="52">
-        <polygon points="30,3 57,18 57,42 30,57 3,42 3,18" fill="#0d2040" stroke="#00c8e0" strokeWidth="1.5"/>
-        <polygon points="30,8 52,21 52,39 30,52 8,39 8,21" fill="none" stroke="#00c8e0" strokeWidth="0.5" opacity="0.4"/>
-        <text x="30" y="38" textAnchor="middle" fill="#00c8e0" fontSize="22" fontWeight="bold" fontFamily="Arial, sans-serif">J</text>
+      <svg width="52" height="52" viewBox="0 0 52 52">
+        <polygon
+          points="26,2 50,15 50,37 26,50 2,37 2,15"
+          fill="#0d1520" stroke="#00c8e0" strokeWidth="1.5"
+        />
+        <polygon
+          points="26,7 45,18 45,34 26,45 7,34 7,18"
+          fill="none" stroke="#00c8e040" strokeWidth="0.5"
+        />
+        <text x="26" y="33" textAnchor="middle" fill="#00c8e0"
+          fontSize="20" fontWeight="bold" fontFamily="Arial, sans-serif">J</text>
       </svg>
       <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-nexus-green rounded-full flex items-center justify-center">
-        <Shield size={8} className="text-white"/>
+        <ShieldCheck size={9} className="text-white"/>
       </div>
     </div>
   )

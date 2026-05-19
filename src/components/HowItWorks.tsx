@@ -1,63 +1,32 @@
-import { Link, BarChart2, Users, Shield, Cloud } from 'lucide-react'
+import { Gamepad2, MousePointer2, Monitor, FileSearch, Database, RefreshCw } from 'lucide-react'
 
 const STEPS = [
-  {
-    icon: <Link size={20}/>,
-    title: '1. Link Account',
-    desc: 'Connect your Jagex account securely via OAuth — no passwords stored.',
-    color: '#00c8e0',
-  },
-  {
-    icon: <BarChart2 size={20}/>,
-    title: '2. Track Progress',
-    desc: 'Live skill XP, quest log, and drop rates pulled directly from the hiscores API.',
-    color: '#3498db',
-  },
-  {
-    icon: <Users size={20}/>,
-    title: '3. Build a Party',
-    desc: 'Invite friends to a shared session and view combined DPS & broadcast hits.',
-    color: '#9b59b6',
-  },
-  {
-    icon: <Cloud size={20}/>,
-    title: '4. Sync & Save',
-    desc: 'Cloud saves keep your goals, notes, and overlays synced across devices.',
-    color: '#27ae60',
-  },
-  {
-    icon: <Shield size={20}/>,
-    title: '5. Stay Safe',
-    desc: 'Read-only API access. We never touch your credentials or in-game items.',
-    color: '#f39c12',
-  },
+  { icon: <Gamepad2 size={18}/>,      num: '1', title: 'You Play',      desc: 'Play RuneScape 3 normally in the official Jagex client. No modifications.' },
+  { icon: <MousePointer2 size={18}/>, num: '2', title: 'Mouse Action',  desc: 'Click on skills, items, chat. The game does its thing normally.' },
+  { icon: <Monitor size={18}/>,       num: '3', title: 'Read Screen',   desc: 'AI Observer captures a selected chat/action region of your screen.' },
+  { icon: <FileSearch size={18}/>,    num: '4', title: 'OCR & Parse',   desc: 'Tesseract.js reads visible action text, parser classifies the event.' },
+  { icon: <Database size={18}/>,      num: '5', title: 'Update Bank',   desc: 'Parsed events update your local Bank mirror. You approve low-confidence events.' },
+  { icon: <RefreshCw size={18}/>,     num: '6', title: 'Sync Data',     desc: 'HiScores & GE prices sync every 5 min via official public RS3 APIs.' },
 ]
 
 export function HowItWorks() {
   return (
-    <section className="border-t border-nexus-border bg-[#060d18]">
-      <div className="px-4 py-3 border-b border-nexus-border">
-        <h2 className="text-xs font-bold tracking-widest text-nexus-text-bright uppercase">
-          How the Companion Works
-        </h2>
-        <p className="text-[10px] text-nexus-text mt-0.5">
-          Built for RuneScape 3 · Full OSRS support · Powerful · Personal
-        </p>
+    <div className="flex items-stretch h-full">
+      <div className="px-3 py-2 border-r border-nexus-border flex flex-col justify-center" style={{ minWidth: 140 }}>
+        <div className="text-[9px] text-nexus-text-dim uppercase tracking-widest font-bold mb-0.5">How the</div>
+        <div className="text-[11px] text-nexus-text-bright font-bold">Companion Works</div>
       </div>
-      <div className="flex divide-x divide-nexus-border">
-        {STEPS.map((step) => (
-          <div key={step.title} className="flex-1 px-3 py-3 flex flex-col items-center text-center gap-1.5 hover:bg-nexus-card transition-colors">
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: step.color + '22', border: `1px solid ${step.color}44`, color: step.color }}
-            >
-              {step.icon}
+      <div className="flex flex-1 divide-x divide-nexus-border">
+        {STEPS.map((s) => (
+          <div key={s.num} className="flex flex-col items-center justify-center px-3 py-2 text-center gap-1 hover:bg-nexus-card transition-colors flex-1">
+            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-nexus-accent/10 text-nexus-accent">
+              {s.icon}
             </div>
-            <div className="text-[10px] font-bold text-nexus-text-bright">{step.title}</div>
-            <div className="text-[9px] text-nexus-text leading-relaxed">{step.desc}</div>
+            <div className="text-[9px] font-bold text-nexus-text-bright">{s.num}. {s.title}</div>
+            <div className="text-[8px] text-nexus-text leading-tight max-w-[90px]">{s.desc}</div>
           </div>
         ))}
       </div>
-    </section>
+    </div>
   )
 }
