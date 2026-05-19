@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { Home, Users, Gamepad2, Newspaper, Settings, ExternalLink, ChevronDown } from 'lucide-react'
-
-// electronAPI is declared globally in AppContext.tsx
+import { useApp } from '../context/AppContext'
 
 type SideIcon = 'home' | 'accounts' | 'games' | 'news' | 'settings'
 
@@ -126,13 +125,18 @@ function RS3HeroArt() {
 
 export function LauncherPanel() {
   const [activeNav, setActiveNav] = useState<SideIcon>('home')
+  const { state } = useApp()
 
-  const DEFAULT_LAUNCHER = 'C:\\Program Files\\Jagex Launcher\\JagexLauncher.exe'
+  const launcherPath = state.settings.launcherPath ||
+    'C:\\Program Files\\Jagex Launcher\\JagexLauncher.exe'
+
+  const launcherDetected  = state.bridgeStatus.launcherDetected
+  const gameRunning       = state.bridgeStatus.gameProcessDetected
 
   const handlePlay = useCallback(() => {
-    window?.electronAPI?.launchGame(DEFAULT_LAUNCHER).catch(() => null)
-    console.info('[Nexus] PLAY clicked — launching official Jagex launcher')
-  }, [])
+    window?.electronAPI?.launchGame(launcherPath).catch(() => null)
+    console.info('[Nexus] PLAY clicked — launching:', launcherPath)
+  }, [launcherPath])
 
   const handleMinimize = useCallback(() => { /* window control handled by OS frame */ }, [])
   const handleClose    = useCallback(() => { /* window control handled by OS frame */ }, [])
@@ -286,10 +290,16 @@ export function LauncherPanel() {
         {/* Bottom bar */}
         <div className="flex items-center gap-2 px-3 py-2 border-t border-nexus-border bg-black/30 flex-shrink-0">
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <div className="w-1.5 h-1.5 rounded-full bg-nexus-green flex-shrink-0" />
-            <span className="text-[9px] font-mono text-nexus-green">Launcher connected</span>
-            <span className="text-[9px] font-mono text-nexus-text mx-1">·</span>
-            <span className="text-[9px] font-mono text-nexus-text-bright font-bold truncate">Gielinor_Hero</span>
+            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${launcherDetected ? 'bg-nexus-green' : 'bg-amber-400'}`} />
+            <span className={`text-[9px] font-mono ${launcherDetected ? 'text-nexus-green' : 'text-amber-400'}`}>
+              {launcherDetected ? (gameRunning ? 'Game running' : 'Launcher found') : 'Launcher not found'}
+            </span>
+            {state.settings.playerName ? (
+              <>
+                <span className="text-[9px] font-mono text-nexus-text mx-1">·</span>
+                <span className="text-[9px] font-mono text-nexus-text-bright font-bold truncate">{state.settings.playerName}</span>
+              </>
+            ) : null}
           </div>
           <button className="flex items-center gap-1 px-2 py-1 bg-nexus-accent/10 border border-nexus-accent/25 text-nexus-accent text-[9px] font-mono rounded-lg hover:bg-nexus-accent/20 transition-colors flex-shrink-0">
             <ExternalLink className="w-2.5 h-2.5" />

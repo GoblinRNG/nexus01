@@ -2,9 +2,9 @@ import React, { useState, useMemo, useCallback } from 'react'
 import {
   Coins, Grid3X3, BarChart2, Activity, Target, Calendar,
   TrendingUp, Clock, Settings, Search, RefreshCw,
-  Home, ChevronRight,
+  Home, ChevronRight, Cpu,
 } from 'lucide-react'
-import type { AppState, AppSettings, NexusTab, BankItem } from '../types'
+import type { AppState, AppSettings, NexusTab, BankItem, SourceEvent } from '../types'
 import { RS3_SKILL_ORDER } from '../types'
 import { StatCards } from './StatCards'
 import { BankOverview } from './BankOverview'
@@ -13,6 +13,7 @@ import { ActivityFeed } from './ActivityFeed'
 import { GoalsPanel } from './GoalsPanel'
 import { DailyPanel } from './DailyPanel'
 import { SettingsPanel } from './SettingsPanel'
+import { AIObserver } from './AIObserver'
 
 // ---------------------------------------------------------------------------
 // AppAction type
@@ -30,8 +31,13 @@ export type AppAction =
   | { type: 'STOP_OCR' }
 
 interface NexusShellProps {
-  state: AppState
-  dispatch: (action: AppAction) => void
+  state:             AppState
+  dispatch:          (action: AppAction) => void
+  syncHiscores?:     () => Promise<{ success: boolean; error?: string }>
+  syncRuneMetrics?:  () => Promise<{ success: boolean; error?: string }>
+  syncPrices?:       () => Promise<void>
+  onSelectRegion?:   () => Promise<void>
+  onEventDetected?:  (event: SourceEvent) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -49,6 +55,7 @@ const NAV_ITEMS: NavItem[] = [
   { tab: 'inventory',  label: 'Inventory', icon: <Grid3X3 className="w-4 h-4" /> },
   { tab: 'skills',     label: 'Skills',    icon: <BarChart2 className="w-4 h-4" /> },
   { tab: 'activity',   label: 'Activity',  icon: <Activity className="w-4 h-4" /> },
+  { tab: 'observer',   label: 'Observer',  icon: <Cpu className="w-4 h-4" /> },
   { tab: 'goals',      label: 'Goals',     icon: <Target className="w-4 h-4" /> },
   { tab: 'daily',      label: 'Daily',     icon: <Calendar className="w-4 h-4" /> },
   { tab: 'prices',     label: 'Prices',    icon: <TrendingUp className="w-4 h-4" /> },
@@ -163,15 +170,28 @@ function SkillsGrid({ state }: { state: AppState }) {
 // ---------------------------------------------------------------------------
 // Prices tab
 // ---------------------------------------------------------------------------
-function PricesTab({ state }: { state: AppState }) {
+function PricesTab({ state, onSyncPrices }: { state: AppState; onSyncPrices?: () => Promise<void> }) {
+  const [syncing, setSyncing] = useState(false)
   const items = Object.values(state.itemPrices)
+
+  const handleSync = useCallback(async () => {
+    if (!onSyncPrices || syncing) return
+    setSyncing(true)
+    await onSyncPrices().catch(console.error)
+    setSyncing(false)
+  }, [onSyncPrices, syncing])
+
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-mono font-bold text-nexus-text-bright">Grand Exchange Prices</h3>
-        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-nexus-accent/10 border border-nexus-accent/30 text-nexus-accent text-xs font-mono rounded-lg hover:bg-nexus-accent/20 transition-colors">
-          <RefreshCw className="w-3.5 h-3.5" />
-          Sync Prices
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-nexus-accent/10 border border-nexus-accent/30 text-nexus-accent text-xs font-mono rounded-lg hover:bg-nexus-accent/20 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Syncing…' : 'Sync Prices'}
         </button>
       </div>
       {items.length === 0 ? (
@@ -483,7 +503,11 @@ function TopBar({ state, dispatch }: { state: AppState; dispatch: (a: AppAction)
 // ---------------------------------------------------------------------------
 // Main NexusShell
 // ---------------------------------------------------------------------------
-export function NexusShell({ state, dispatch }: NexusShellProps) {
+export function NexusShell({
+  state, dispatch,
+  syncHiscores, syncRuneMetrics, syncPrices,
+  onSelectRegion, onEventDetected,
+}: NexusShellProps) {
   const tab = state.activeTab
 
   const setTab = useCallback(
@@ -523,6 +547,20 @@ export function NexusShell({ state, dispatch }: NexusShellProps) {
             />
           </div>
         )
+      case 'observer':
+        return (
+          <div className="h-full p-4">
+            <AIObserver
+              running={state.ocrRunning}
+              onStart={() => dispatch({ type: 'START_OCR' })}
+              onStop={() => dispatch({ type: 'STOP_OCR' })}
+              onSelectRegion={() => { onSelectRegion?.().catch(console.error) }}
+              onEventDetected={onEventDetected ?? (() => {})}
+              selectedRegion={state.settings.selectedRegion}
+              settings={state.settings}
+            />
+          </div>
+        )
       case 'goals':
         return (
           <div className="h-full p-4">
@@ -542,7 +580,7 @@ export function NexusShell({ state, dispatch }: NexusShellProps) {
           </div>
         )
       case 'prices':
-        return <PricesTab state={state} />
+        return <PricesTab state={state} onSyncPrices={syncPrices} />
       case 'sessions':
         return <SessionsTab state={state} dispatch={dispatch} />
       case 'settings':
@@ -551,6 +589,8 @@ export function NexusShell({ state, dispatch }: NexusShellProps) {
             <SettingsPanel
               settings={state.settings}
               onSave={settings => dispatch({ type: 'SAVE_SETTINGS', settings })}
+              onSyncHiscores={syncHiscores}
+              onSyncRuneMetrics={syncRuneMetrics}
             />
           </div>
         )

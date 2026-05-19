@@ -152,6 +152,7 @@ export interface ClassifiedEvent {
 export type NexusTab =
   | 'dashboard' | 'bank' | 'inventory' | 'skills'
   | 'activity' | 'goals' | 'daily' | 'prices' | 'sessions' | 'settings'
+  | 'observer'
 
 export interface AppState {
   settings: AppSettings

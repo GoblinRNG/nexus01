@@ -1,5 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
+// Signal to main process that preload executed successfully
+ipcRenderer.invoke('preload:ready').catch(() => {})
+
 contextBridge.exposeInMainWorld('electronAPI', {
   // Launcher
   detectLauncher: (path?: string) =>
@@ -14,6 +17,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // HiScores
   fetchHiscores: (playerName: string) =>
     ipcRenderer.invoke('hiscores:fetch', playerName),
+
+  // RuneMetrics public activity feed
+  fetchRuneMetrics: (playerName: string) =>
+    ipcRenderer.invoke('runemetrics:fetch', playerName),
 
   // Item prices
   fetchItemPrice: (itemId: number) =>

@@ -43,6 +43,26 @@ export async function fetchHiscores(playerName: string): Promise<HiscoresResult>
   }
 }
 
+export interface RuneMetricsResult {
+  success: boolean
+  activities?: Array<{ date: string; details: string; text: string }>
+  error?: string
+}
+
+export async function fetchRuneMetrics(playerName: string): Promise<RuneMetricsResult> {
+  const url = `https://apps.runescape.com/runemetrics/profile/profile?user=${encodeURIComponent(playerName)}&activities=20`
+  try {
+    const resp = await net.fetch(url)
+    if (resp.status === 403) return { success: false, error: 'Profile is private' }
+    if (!resp.ok) return { success: false, error: `HTTP ${resp.status}` }
+    const data = await resp.json() as { error?: string; activities?: Array<{ date: string; details: string; text: string }> }
+    if (data.error) return { success: false, error: data.error }
+    return { success: true, activities: data.activities ?? [] }
+  } catch (err) {
+    return { success: false, error: String(err) }
+  }
+}
+
 export async function fetchItemPrice(itemId: number): Promise<PriceResult> {
   const url = `https://services.runescape.com/m=itemdb_rs/api/catalogue/detail.json?item=${itemId}`
   try {

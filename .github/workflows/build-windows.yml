@@ -52,6 +52,9 @@ jobs:
       - name: Verify build artifacts
         run: node scripts/verify-build.js
 
+      - name: Smoke test production build
+        run: node scripts/smoke-prod.js
+
       - name: Package — NSIS installer + portable
         run: npx electron-builder --win nsis portable --x64
         env:

@@ -8,6 +8,8 @@ import type { AppSettings } from '../types'
 interface SettingsPanelProps {
   settings: AppSettings
   onSave: (settings: AppSettings) => void
+  onSyncHiscores?: () => Promise<{ success: boolean; error?: string }>
+  onSyncRuneMetrics?: () => Promise<{ success: boolean; error?: string }>
 }
 
 const SCAN_INTERVAL_OPTIONS = [
@@ -155,9 +157,10 @@ function DangerButton({ icon, label, onClick, variant = 'default' }: {
   )
 }
 
-export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
+export function SettingsPanel({ settings, onSave, onSyncHiscores, onSyncRuneMetrics }: SettingsPanelProps) {
   const [local, setLocal] = useState<AppSettings>({ ...settings })
   const [showToast, setShowToast] = useState(false)
+  const [syncStatus, setSyncStatus] = useState<string | null>(null)
 
   const update = useCallback(<K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setLocal(prev => ({ ...prev, [key]: value }))
@@ -226,10 +229,37 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
             onChange={v => update('playerName', v)}
             placeholder="Your RS3 username"
           />
-          <button className="flex items-center gap-1.5 px-3 py-2 bg-nexus-panel border border-nexus-border text-nexus-text-bright text-xs font-mono rounded-lg hover:border-nexus-accent/40 hover:text-nexus-accent transition-colors">
-            <RefreshCw className="w-3.5 h-3.5" />
-            Sync HiScores
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={async () => {
+                setSyncStatus('Syncing HiScores…')
+                const result = await onSyncHiscores?.() ?? { success: false, error: 'Not available' }
+                setSyncStatus(result.success ? '✓ HiScores synced' : `✗ ${result.error}`)
+                setTimeout(() => setSyncStatus(null), 4000)
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 bg-nexus-panel border border-nexus-border text-nexus-text-bright text-xs font-mono rounded-lg hover:border-nexus-accent/40 hover:text-nexus-accent transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Sync HiScores
+            </button>
+            <button
+              onClick={async () => {
+                setSyncStatus('Fetching RuneMetrics…')
+                const result = await onSyncRuneMetrics?.() ?? { success: false, error: 'Not available' }
+                setSyncStatus(result.success ? '✓ RuneMetrics synced' : `✗ ${result.error}`)
+                setTimeout(() => setSyncStatus(null), 4000)
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 bg-nexus-panel border border-nexus-border text-nexus-text-bright text-xs font-mono rounded-lg hover:border-nexus-accent/40 hover:text-nexus-accent transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Sync RuneMetrics
+            </button>
+            {syncStatus && (
+              <span className={`text-[10px] font-mono ${syncStatus.startsWith('✓') ? 'text-nexus-green' : syncStatus.startsWith('✗') ? 'text-red-400' : 'text-amber-400'}`}>
+                {syncStatus}
+              </span>
+            )}
+          </div>
         </Section>
 
         <div className="h-px bg-nexus-border" />

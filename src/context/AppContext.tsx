@@ -1,5 +1,5 @@
 import {
-  createContext, useContext, useReducer, useEffect,
+  createContext, useContext, useReducer, useEffect, useRef, useCallback,
   Dispatch, ReactNode,
 } from 'react'
 import {
@@ -10,20 +10,27 @@ import {
 import goalsSeed from '../data/goals.seed.json'
 import itemsSeed from '../data/items.seed.json'
 
-// ── ElectronAPI type ─────────────────────────────────────────────────────────
+// ── ElectronAPI type ──────────────────────────────────────────────────────────
+
+interface RuneMetricsActivity {
+  date: string
+  details: string
+  text: string
+}
 
 interface ElectronAPI {
-  detectLauncher:  (path?: string) => Promise<{ detected: boolean; path: string | null; isRunning: boolean }>
-  launchGame:      (path: string) => Promise<{ success: boolean; error?: string }>
-  getBridgeStatus: () => Promise<BridgeStatus>
-  fetchHiscores:   (name: string) => Promise<{ success: boolean; skills?: PlayerHiscores['skills']; error?: string }>
-  fetchItemPrice:  (id: number) => Promise<{ success: boolean; guidePrice?: number; name?: string }>
-  readStore:       (key: string) => Promise<unknown>
-  writeStore:      (key: string, value: unknown) => Promise<void>
-  getDataDir:      () => Promise<string>
-  captureRegion:   (r: { x: number; y: number; width: number; height: number }) => Promise<{ success: boolean; dataUrl?: string }>
-  selectRegion:    () => Promise<{ x: number; y: number; width: number; height: number }>
-  onBridgeUpdate:  (cb: (status: unknown) => void) => () => void
+  detectLauncher:   (path?: string) => Promise<{ detected: boolean; path: string | null; isRunning: boolean }>
+  launchGame:       (path: string)  => Promise<{ success: boolean; error?: string }>
+  getBridgeStatus:  () => Promise<BridgeStatus>
+  fetchHiscores:    (name: string)  => Promise<{ success: boolean; playerName: string; fetchedAt: string; skills?: PlayerHiscores['skills']; error?: string }>
+  fetchRuneMetrics: (name: string)  => Promise<{ success: boolean; activities?: RuneMetricsActivity[]; error?: string }>
+  fetchItemPrice:   (id: number)    => Promise<{ success: boolean; itemId: number; name?: string; guidePrice?: number; error?: string }>
+  readStore:        (key: string)   => Promise<unknown>
+  writeStore:       (key: string, value: unknown) => Promise<void>
+  getDataDir:       () => Promise<string>
+  captureRegion:    (r: { x: number; y: number; width: number; height: number }) => Promise<{ success: boolean; dataUrl?: string }>
+  selectRegion:     () => Promise<{ x: number; y: number; width: number; height: number }>
+  onBridgeUpdate:   (cb: (status: unknown) => void) => () => void
 }
 
 declare global {
@@ -55,23 +62,23 @@ const DEFAULT_BRIDGE: BridgeStatus = {
 }
 
 const SAMPLE_CHALLENGES: DailyChallenge[] = [
-  { id: 'dc1', title: 'Chop 50 oak logs',       skill: 'Woodcutting', current: 0, target: 50, completed: false, xpReward: 15000, resetTime: '00:00 UTC' },
-  { id: 'dc2', title: 'Mine 30 iron ore',        skill: 'Mining',      current: 0, target: 30, completed: false, xpReward: 12000, resetTime: '00:00 UTC' },
-  { id: 'dc3', title: 'Catch 20 raw salmon',     skill: 'Fishing',     current: 0, target: 20, completed: false, xpReward: 10000, resetTime: '00:00 UTC' },
+  { id: 'dc1', title: 'Chop 50 oak logs',   skill: 'Woodcutting', current: 0, target: 50, completed: false, xpReward: 15000, resetTime: '00:00 UTC' },
+  { id: 'dc2', title: 'Mine 30 iron ore',    skill: 'Mining',      current: 0, target: 30, completed: false, xpReward: 12000, resetTime: '00:00 UTC' },
+  { id: 'dc3', title: 'Catch 20 raw salmon', skill: 'Fishing',     current: 0, target: 20, completed: false, xpReward: 10000, resetTime: '00:00 UTC' },
 ]
 
 const INITIAL_STATE: AppState = {
-  settings:          DEFAULT_SETTINGS,
-  bridgeStatus:      DEFAULT_BRIDGE,
-  hiscores:          null,
-  bank:              [],
-  inventory:         [],
-  activities:        [],
-  bankOperations:    [],
-  goals:             goalsSeed as Goal[],
-  dailyChallenges:   SAMPLE_CHALLENGES,
-  sessions:          [],
-  itemPrices:        Object.fromEntries(
+  settings:        DEFAULT_SETTINGS,
+  bridgeStatus:    DEFAULT_BRIDGE,
+  hiscores:        null,
+  bank:            [],
+  inventory:       [],
+  activities:      [],
+  bankOperations:  [],
+  goals:           goalsSeed as Goal[],
+  dailyChallenges: SAMPLE_CHALLENGES,
+  sessions:        [],
+  itemPrices:      Object.fromEntries(
     (itemsSeed as Array<{ id: number; name: string; guidePrice: number; category: string; stackable: boolean }>).map((item) => [
       item.name,
       {
@@ -85,10 +92,10 @@ const INITIAL_STATE: AppState = {
       } satisfies ItemInfo,
     ])
   ),
-  ocrRunning:        false,
-  lastHiscoresSync:  null,
-  pendingEvents:     [],
-  activeTab:         'dashboard',
+  ocrRunning:       false,
+  lastHiscoresSync: null,
+  pendingEvents:    [],
+  activeTab:        'dashboard',
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -223,16 +230,95 @@ function reducer(state: AppState, action: AppAction): AppState {
 // ── Context ───────────────────────────────────────────────────────────────────
 
 interface AppCtx {
-  state:    AppState
-  dispatch: Dispatch<AppAction>
+  state:           AppState
+  dispatch:        Dispatch<AppAction>
+  syncHiscores:    () => Promise<{ success: boolean; error?: string }>
+  syncRuneMetrics: () => Promise<{ success: boolean; error?: string }>
+  syncPrices:      () => Promise<void>
 }
 
 const AppContext = createContext<AppCtx | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE)
+  const stateRef = useRef(state)
+  useEffect(() => { stateRef.current = state }, [state])
 
-  // Persist settings / bank on change
+  // ── Sync HiScores ───────────────────────────────────────────────────────────
+  const syncHiscores = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    const api = window.electronAPI
+    const playerName = stateRef.current.settings.playerName.trim()
+    if (!api) return { success: false, error: 'Electron API not available' }
+    if (!playerName) return { success: false, error: 'No player name configured' }
+    try {
+      const result = await api.fetchHiscores(playerName)
+      if (result.success && result.skills) {
+        dispatch({
+          type: 'SET_HISCORES',
+          data: { playerName: result.playerName, fetchedAt: result.fetchedAt, skills: result.skills },
+        })
+        dispatch({ type: 'SET_BRIDGE', status: { ...stateRef.current.bridgeStatus, accountSyncActive: true, lastSync: result.fetchedAt } })
+        return { success: true }
+      }
+      return { success: false, error: result.error ?? 'Unknown error' }
+    } catch (err) {
+      return { success: false, error: String(err) }
+    }
+  }, [])
+
+  // ── Sync RuneMetrics ─────────────────────────────────────────────────────────
+  const syncRuneMetrics = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    const api = window.electronAPI
+    const playerName = stateRef.current.settings.playerName.trim()
+    if (!api) return { success: false, error: 'Electron API not available' }
+    if (!playerName) return { success: false, error: 'No player name configured' }
+    try {
+      const result = await api.fetchRuneMetrics(playerName)
+      if (!result.success) return { success: false, error: result.error }
+      const activities = result.activities ?? []
+      for (const act of activities.slice(0, 10)) {
+        const event: SourceEvent = {
+          id:              crypto.randomUUID(),
+          timestamp:       new Date(act.date).toISOString(),
+          source:          'RuneMetrics',
+          rawText:         act.text || act.details,
+          confidence:      1.0,
+          parsedOperation: null,
+        }
+        dispatch({ type: 'ADD_EVENT', event })
+      }
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: String(err) }
+    }
+  }, [])
+
+  // ── Sync Prices ─────────────────────────────────────────────────────────────
+  const syncPrices = useCallback(async (): Promise<void> => {
+    const api = window.electronAPI
+    if (!api) return
+    const items = Object.values(stateRef.current.itemPrices)
+    const updates: Record<string, ItemInfo> = {}
+    await Promise.allSettled(
+      items.map(async (item) => {
+        const result = await api.fetchItemPrice(item.id).catch(() => null)
+        if (result?.success && result.guidePrice !== undefined) {
+          updates[item.name] = {
+            ...item,
+            guidePrice:    result.guidePrice,
+            name:          result.name ?? item.name,
+            lastPriceSync: new Date().toISOString(),
+          }
+        }
+      })
+    )
+    if (Object.keys(updates).length > 0) {
+      dispatch({ type: 'UPDATE_PRICES', prices: updates })
+    }
+  }, [])
+
+  // ── Persistence ─────────────────────────────────────────────────────────────
+
   useEffect(() => {
     window.electronAPI?.writeStore('settings', state.settings)
   }, [state.settings])
@@ -241,24 +327,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     window.electronAPI?.writeStore('bank', state.bank)
   }, [state.bank])
 
-  // Load persisted data
+  // ── Hydrate from storage ─────────────────────────────────────────────────────
+
   useEffect(() => {
     async function hydrate() {
       const api = window.electronAPI
       if (!api) return
-      const savedSettings = await api.readStore('settings')
+      const savedSettings = await api.readStore('settings').catch(() => null)
       if (savedSettings) dispatch({ type: 'SET_SETTINGS', settings: savedSettings as AppSettings })
-      const savedBank = await api.readStore('bank')
+      const savedBank = await api.readStore('bank').catch(() => null)
       if (Array.isArray(savedBank)) dispatch({ type: 'SET_BANK', bank: savedBank as BankItem[] })
-
-      // Initial bridge status
       const status = await api.getBridgeStatus().catch(() => null)
       if (status) dispatch({ type: 'SET_BRIDGE', status })
     }
     hydrate()
   }, [])
 
-  // Bridge status subscription
+  // ── Auto-sync HiScores every 5 minutes ──────────────────────────────────────
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (stateRef.current.settings.playerName) {
+        syncHiscores().catch(console.error)
+      }
+    }, 5 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [syncHiscores])
+
+  // ── Bridge status subscription ───────────────────────────────────────────────
+
   useEffect(() => {
     const unsub = window.electronAPI?.onBridgeUpdate((status) => {
       dispatch({ type: 'SET_BRIDGE', status: status as BridgeStatus })
@@ -266,7 +363,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return unsub
   }, [])
 
-  return <AppContext.Provider value={{ state, dispatch }}>{children}</AppContext.Provider>
+  return (
+    <AppContext.Provider value={{ state, dispatch, syncHiscores, syncRuneMetrics, syncPrices }}>
+      {children}
+    </AppContext.Provider>
+  )
 }
 
 export function useApp() {
