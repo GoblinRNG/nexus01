@@ -138,6 +138,7 @@ export interface AppSettings {
   ocrThreshold: number
   aiConfidenceThreshold: number
   scanInterval: number
+  demoMode: boolean
   selectedRegion?: { x: number; y: number; width: number; height: number }
 }
 

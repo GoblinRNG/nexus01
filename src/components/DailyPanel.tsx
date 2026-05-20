@@ -10,39 +10,6 @@ interface DailyPanelProps {
   onStopSession: (id: string) => void
 }
 
-const SAMPLE_CHALLENGES: DailyChallenge[] = [
-  {
-    id: 'daily-wc',
-    title: 'Chop 50 oak logs',
-    skill: 'Woodcutting',
-    current: 0,
-    target: 50,
-    completed: false,
-    xpReward: 15000,
-    resetTime: new Date(Date.now() + 86_400_000).toISOString(),
-  },
-  {
-    id: 'daily-mining',
-    title: 'Mine 30 iron ore',
-    skill: 'Mining',
-    current: 0,
-    target: 30,
-    completed: false,
-    xpReward: 12000,
-    resetTime: new Date(Date.now() + 86_400_000).toISOString(),
-  },
-  {
-    id: 'daily-fishing',
-    title: 'Catch 20 raw salmon',
-    skill: 'Fishing',
-    current: 0,
-    target: 20,
-    completed: false,
-    xpReward: 10000,
-    resetTime: new Date(Date.now() + 86_400_000).toISOString(),
-  },
-]
-
 const SESSION_PRESETS = [
   'Woodcutting', 'Firemaking', 'Fletching', 'Cooking',
   'Fishing', 'Mining', 'Prayer', 'Combat',
@@ -235,7 +202,7 @@ export function DailyPanel({
   onStartSession,
   onStopSession,
 }: DailyPanelProps) {
-  const displayChallenges = challenges.length > 0 ? challenges : SAMPLE_CHALLENGES
+  const displayChallenges = challenges
   const activeSession = sessions.find(s => s.active) ?? null
   const completedCount = displayChallenges.filter(c => c.completed).length
 
@@ -252,30 +219,42 @@ export function DailyPanel({
             {completedCount}/{displayChallenges.length} complete
           </p>
         </div>
-        <div className="ml-auto flex items-center gap-1.5">
-          <div className="w-16 h-1.5 bg-nexus-border rounded-full overflow-hidden">
-            <div
-              className="h-full bg-nexus-gold rounded-full transition-all"
-              style={{ width: `${(completedCount / displayChallenges.length) * 100}%` }}
-            />
+        {displayChallenges.length > 0 && (
+          <div className="ml-auto flex items-center gap-1.5">
+            <div className="w-16 h-1.5 bg-nexus-border rounded-full overflow-hidden">
+              <div
+                className="h-full bg-nexus-gold rounded-full transition-all"
+                style={{ width: `${(completedCount / displayChallenges.length) * 100}%` }}
+              />
+            </div>
+            <span className="text-[10px] font-mono text-nexus-gold font-bold">
+              {Math.round((completedCount / displayChallenges.length) * 100)}%
+            </span>
           </div>
-          <span className="text-[10px] font-mono text-nexus-gold font-bold">
-            {Math.round((completedCount / displayChallenges.length) * 100)}%
-          </span>
-        </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-5">
         {/* Daily Challenges Section */}
-        <div className="space-y-2">
-          {displayChallenges.map(challenge => (
-            <ChallengeRow
-              key={challenge.id}
-              challenge={challenge}
-              onComplete={onCompleteChallenge}
-            />
-          ))}
-        </div>
+        {displayChallenges.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 gap-2 text-center border border-dashed border-nexus-border rounded-xl">
+            <Calendar className="w-8 h-8 text-nexus-text/20" />
+            <p className="text-xs font-mono text-nexus-text">No daily challenges loaded.</p>
+            <p className="text-[10px] font-mono text-nexus-text/60">
+              Daily challenges reset at 00:00 UTC. Sync your account to load them.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {displayChallenges.map(challenge => (
+              <ChallengeRow
+                key={challenge.id}
+                challenge={challenge}
+                onComplete={onCompleteChallenge}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Divider */}
         <div className="relative flex items-center">

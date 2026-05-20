@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import {
   Settings, User, FolderOpen, Eye, Database, ShieldCheck, Info,
-  Save, RefreshCw, Download, Upload, Trash2, CheckCircle2
+  Save, RefreshCw, Download, Upload, Trash2, CheckCircle2, FlaskConical,
 } from 'lucide-react'
 import type { AppSettings } from '../types'
 
@@ -161,6 +161,11 @@ export function SettingsPanel({ settings, onSave, onSyncHiscores, onSyncRuneMetr
   const [local, setLocal] = useState<AppSettings>({ ...settings })
   const [showToast, setShowToast] = useState(false)
   const [syncStatus, setSyncStatus] = useState<string | null>(null)
+  const [dataDir, setDataDir] = useState<string>('')
+
+  useEffect(() => {
+    window.electronAPI?.getDataDir().then(setDataDir).catch(() => {})
+  }, [])
 
   const update = useCallback(<K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setLocal(prev => ({ ...prev, [key]: value }))
@@ -293,7 +298,27 @@ export function SettingsPanel({ settings, onSave, onSyncHiscores, onSyncRuneMetr
 
         <div className="h-px bg-nexus-border" />
 
-        {/* 3. AI Observer */}
+        {/* 3. Demo Mode */}
+        <Section icon={<FlaskConical className="w-3.5 h-3.5" />} title="Demo Mode">
+          <Toggle
+            label="Demo mode"
+            value={local.demoMode ?? false}
+            onChange={v => update('demoMode', v)}
+            note="Show sample data when no real data is available. OFF by default — disable to see only real data from your account."
+          />
+          {(local.demoMode ?? false) && (
+            <div className="flex items-start gap-2 p-2.5 bg-amber-400/5 border border-amber-400/20 rounded-lg">
+              <Info className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
+              <p className="text-[10px] font-mono text-amber-400/80 leading-relaxed">
+                Demo mode is ON. Some panels may show placeholder data. Sync your HiScores to load real data.
+              </p>
+            </div>
+          )}
+        </Section>
+
+        <div className="h-px bg-nexus-border" />
+
+        {/* 5. AI Observer */}
         <Section icon={<Eye className="w-3.5 h-3.5" />} title="AI Observer">
           <SliderField
             label="OCR Threshold"
@@ -333,21 +358,29 @@ export function SettingsPanel({ settings, onSave, onSyncHiscores, onSyncRuneMetr
 
         <div className="h-px bg-nexus-border" />
 
-        {/* 4. Data */}
+        {/* 6. Data */}
         <Section icon={<Database className="w-3.5 h-3.5" />} title="Data">
+          {dataDir && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-mono text-nexus-text uppercase tracking-wider">App Data Directory</label>
+              <div className="px-3 py-2 rounded-lg border border-nexus-border/40 bg-nexus-bg/40 text-[10px] font-mono text-nexus-text break-all">
+                {dataDir}
+              </div>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             <DangerButton icon={<Download className="w-3.5 h-3.5" />} label="Export All Data" onClick={handleExport} />
             <DangerButton icon={<Upload className="w-3.5 h-3.5" />} label="Import Data" onClick={() => {}} />
             <DangerButton icon={<Trash2 className="w-3.5 h-3.5" />} label="Reset Database" onClick={() => {}} variant="danger" />
           </div>
           <p className="text-[10px] font-mono text-nexus-text/60 leading-relaxed">
-            Export saves all tracked items, sessions, goals, and events as JSON. Import merges data from a previous export. Reset deletes all local data permanently.
+            All data stored locally on your device. Export saves items, sessions, goals, and events as JSON.
           </p>
         </Section>
 
         <div className="h-px bg-nexus-border" />
 
-        {/* 5. Safety & Attribution */}
+        {/* 7. Safety & Attribution */}
         <Section icon={<ShieldCheck className="w-3.5 h-3.5" />} title="Safety & Attribution">
           <div className="p-3 bg-nexus-green/5 border border-nexus-green/20 rounded-xl space-y-2">
             {[
@@ -372,7 +405,7 @@ export function SettingsPanel({ settings, onSave, onSyncHiscores, onSyncRuneMetr
 
         <div className="h-px bg-nexus-border" />
 
-        {/* 6. About */}
+        {/* 8. About */}
         <Section icon={<Info className="w-3.5 h-3.5" />} title="About">
           <div className="p-3 bg-nexus-bg border border-nexus-border rounded-xl space-y-2">
             {[

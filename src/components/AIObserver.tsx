@@ -1,5 +1,6 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Eye, EyeOff, Crosshair, ShieldAlert, Cpu, ChevronDown } from 'lucide-react'
+import Tesseract from 'tesseract.js'
 import type { SourceEvent, EventSource, AppSettings } from '../types'
 
 interface AIObserverProps {
@@ -43,7 +44,7 @@ export function AIObserver({
   onStart,
   onStop,
   onSelectRegion,
-  onEventDetected: _onEventDetected,
+  onEventDetected,
   selectedRegion,
   settings,
 }: AIObserverProps) {
@@ -53,25 +54,108 @@ export function AIObserver({
   const [lastOcrText, setLastOcrText] = useState<string>('')
   const [lastDecision, setLastDecision] = useState<string>('')
 
-  // Simulate injecting a demo event when start is clicked (for dev/demo purposes)
+  const ocrLoopRef      = useRef<ReturnType<typeof setInterval> | null>(null)
+  const selectedRegionRef = useRef(selectedRegion)
+  const confThreshRef   = useRef(confidenceThreshold)
+
+  useEffect(() => { selectedRegionRef.current = selectedRegion }, [selectedRegion])
+  useEffect(() => { confThreshRef.current = confidenceThreshold }, [confidenceThreshold])
+
+  // cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (ocrLoopRef.current) clearInterval(ocrLoopRef.current)
+    }
+  }, [])
+
+  const pushLog = useCallback((event: SourceEvent) => {
+    setEventLog(prev => [event, ...prev].slice(0, 50))
+  }, [])
+
   const handleStart = useCallback(() => {
     onStart()
-    const demo: SourceEvent = {
+    if (ocrLoopRef.current) clearInterval(ocrLoopRef.current)
+
+    const initEvent: SourceEvent = {
       id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
       source: 'OCR',
-      rawText: 'Observer started — scanning for game text...',
+      rawText: 'Observer started — scanning for game text…',
       confidence: 1.0,
       parsedOperation: null,
     }
-    setLastOcrText(demo.rawText)
-    setLastDecision('idle — waiting for game window')
-    setEventLog(prev => [demo, ...prev].slice(0, 10))
-  }, [onStart])
+    pushLog(initEvent)
+    setLastOcrText(initEvent.rawText)
+    setLastDecision('idle — waiting for region capture')
+
+    ocrLoopRef.current = setInterval(async () => {
+      const region = selectedRegionRef.current
+      if (!region) {
+        setLastDecision('no region selected — click "Select Region"')
+        return
+      }
+      const api = window.electronAPI
+      if (!api) {
+        setLastDecision('Electron API unavailable (renderer-only mode)')
+        return
+      }
+
+      let capture: { success: boolean; dataUrl?: string } | null = null
+      try {
+        capture = await api.captureRegion(region)
+      } catch {
+        setLastDecision('screen capture error')
+        return
+      }
+      if (!capture?.success || !capture.dataUrl) {
+        setLastDecision('capture failed — game window may be minimised')
+        return
+      }
+
+      try {
+        const { data: { text, confidence } } = await Tesseract.recognize(
+          capture.dataUrl,
+          'eng',
+          { logger: () => {} }
+        )
+
+        const trimmed = text.trim()
+        setLastOcrText(trimmed || '(no text detected)')
+
+        const confPct = confidence / 100
+        if (!trimmed || confPct < confThreshRef.current / 100) {
+          setLastDecision(`low confidence (${Math.round(confidence)}%) — skipped`)
+          return
+        }
+
+        const lines = trimmed.split('\n').map(l => l.trim()).filter(Boolean)
+        for (const line of lines) {
+          const event: SourceEvent = {
+            id:              crypto.randomUUID(),
+            timestamp:       new Date().toISOString(),
+            source:          'OCR',
+            rawText:         line,
+            confidence:      confPct,
+            parsedOperation: null,
+          }
+          pushLog(event)
+          onEventDetected(event)
+        }
+        setLastDecision(`${lines.length} line(s) · ${Math.round(confidence)}% confidence`)
+      } catch (err) {
+        setLastDecision(`OCR error: ${String(err)}`)
+      }
+    }, scanInterval)
+  }, [onStart, scanInterval, pushLog, onEventDetected])
 
   const handleStop = useCallback(() => {
     onStop()
-    const demo: SourceEvent = {
+    if (ocrLoopRef.current) {
+      clearInterval(ocrLoopRef.current)
+      ocrLoopRef.current = null
+    }
+    setLastDecision('stopped')
+    const stopEvent: SourceEvent = {
       id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
       source: 'OCR',
@@ -79,10 +163,9 @@ export function AIObserver({
       confidence: 1.0,
       parsedOperation: null,
     }
-    setLastOcrText(demo.rawText)
-    setLastDecision('stopped')
-    setEventLog(prev => [demo, ...prev].slice(0, 10))
-  }, [onStop])
+    pushLog(stopEvent)
+    setLastOcrText('Observer stopped.')
+  }, [onStop, pushLog])
 
   const sessionEvents = eventLog.length
 
@@ -97,15 +180,13 @@ export function AIObserver({
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-mono font-bold text-nexus-text-bright tracking-wider">AI Observer</h2>
             <div className="flex items-center gap-1">
-              <div
-                className={`w-2 h-2 rounded-full ${running ? 'bg-nexus-green animate-pulse' : 'bg-red-500'}`}
-              />
+              <div className={`w-2 h-2 rounded-full ${running ? 'bg-nexus-green animate-pulse' : 'bg-red-500'}`} />
               <span className={`text-[10px] font-mono ${running ? 'text-nexus-green' : 'text-red-400'}`}>
                 {running ? 'RUNNING' : 'STOPPED'}
               </span>
             </div>
           </div>
-          <p className="text-[10px] font-mono text-nexus-text">OCR-based game screen reader</p>
+          <p className="text-[10px] font-mono text-nexus-text">OCR-based game screen reader · Tesseract.js</p>
         </div>
       </div>
 
@@ -154,8 +235,7 @@ export function AIObserver({
             </div>
             <input
               type="range"
-              min={0}
-              max={100}
+              min={0} max={100}
               value={confidenceThreshold}
               onChange={e => setConfidenceThreshold(Number(e.target.value))}
               className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
@@ -191,7 +271,7 @@ export function AIObserver({
                 {selectedRegion.x},{selectedRegion.y} · {selectedRegion.width}×{selectedRegion.height}
               </span>
             ) : (
-              <span className="text-[10px] font-mono text-amber-400">No region selected</span>
+              <span className="text-[10px] font-mono text-amber-400">No region — click "Select Region"</span>
             )}
           </div>
 
@@ -247,19 +327,11 @@ export function AIObserver({
           )}
         </div>
 
-        {/* Electron IPC note */}
-        <div className="p-3 bg-nexus-bg/60 border border-nexus-border/50 rounded-xl">
-          <p className="text-[10px] font-mono text-nexus-text/60 leading-relaxed">
-            <span className="text-nexus-accent font-bold">Electron IPC required</span> — actual screen capture invokes{' '}
-            <span className="text-nexus-text-bright font-mono">window.electronAPI.startOCR()</span>. In renderer context, the above buttons call your provided callbacks.
-          </p>
-        </div>
-
         {/* Safety note */}
         <div className="flex items-start gap-2.5 p-3 bg-nexus-green/5 border border-nexus-green/20 rounded-xl">
           <ShieldAlert className="w-4 h-4 text-nexus-green flex-shrink-0 mt-0.5" />
           <p className="text-[10px] font-mono text-nexus-green/80 leading-relaxed">
-            AI Observer reads text only. It does not click, type, or control the game.
+            AI Observer reads visible text only via on-device OCR. It does not click, type, or control the game in any way.
           </p>
         </div>
       </div>

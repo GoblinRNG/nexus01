@@ -46,6 +46,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   ocrThreshold:          60,
   aiConfidenceThreshold: 75,
   scanInterval:          2000,
+  demoMode:              false,
 }
 
 const DEFAULT_BRIDGE: BridgeStatus = {
@@ -61,12 +62,6 @@ const DEFAULT_BRIDGE: BridgeStatus = {
   lastSync:            null,
 }
 
-const SAMPLE_CHALLENGES: DailyChallenge[] = [
-  { id: 'dc1', title: 'Chop 50 oak logs',   skill: 'Woodcutting', current: 0, target: 50, completed: false, xpReward: 15000, resetTime: '00:00 UTC' },
-  { id: 'dc2', title: 'Mine 30 iron ore',    skill: 'Mining',      current: 0, target: 30, completed: false, xpReward: 12000, resetTime: '00:00 UTC' },
-  { id: 'dc3', title: 'Catch 20 raw salmon', skill: 'Fishing',     current: 0, target: 20, completed: false, xpReward: 10000, resetTime: '00:00 UTC' },
-]
-
 const INITIAL_STATE: AppState = {
   settings:        DEFAULT_SETTINGS,
   bridgeStatus:    DEFAULT_BRIDGE,
@@ -76,7 +71,7 @@ const INITIAL_STATE: AppState = {
   activities:      [],
   bankOperations:  [],
   goals:           goalsSeed as Goal[],
-  dailyChallenges: SAMPLE_CHALLENGES,
+  dailyChallenges: [],
   sessions:        [],
   itemPrices:      Object.fromEntries(
     (itemsSeed as Array<{ id: number; name: string; guidePrice: number; category: string; stackable: boolean }>).map((item) => [
@@ -130,8 +125,13 @@ function reducer(state: AppState, action: AppAction): AppState {
     case 'SET_BRIDGE':
       return { ...state, bridgeStatus: action.status }
 
-    case 'SET_HISCORES':
-      return { ...state, hiscores: action.data, lastHiscoresSync: new Date().toISOString() }
+    case 'SET_HISCORES': {
+      const overallXP = action.data.skills?.Overall?.xp ?? 0
+      const sessions = state.sessions.map(s =>
+        s.active ? { ...s, currentXP: overallXP } : s
+      )
+      return { ...state, hiscores: action.data, lastHiscoresSync: new Date().toISOString(), sessions }
+    }
 
     case 'SET_BANK':
       return { ...state, bank: action.bank }

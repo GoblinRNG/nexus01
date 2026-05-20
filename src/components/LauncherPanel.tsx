@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { Home, Users, Gamepad2, Newspaper, Settings, ExternalLink, ChevronDown } from 'lucide-react'
+import { Home, Users, Gamepad2, Newspaper, Settings, ExternalLink, ChevronDown, AlertCircle, Download } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 
 type SideIcon = 'home' | 'accounts' | 'games' | 'news' | 'settings'
@@ -250,6 +250,25 @@ export function LauncherPanel() {
             <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-nexus-text pointer-events-none" />
           </div>
         </div>
+
+        {/* Launcher not-found banner */}
+        {!launcherDetected && (
+          <div className="mx-3 mt-2 p-2.5 bg-amber-400/8 border border-amber-400/30 rounded-xl flex-shrink-0">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[10px] font-mono font-bold text-amber-400 mb-1">Jagex Launcher Not Found</p>
+                <p className="text-[9px] font-mono text-amber-400/80 leading-relaxed mb-1.5">
+                  Install the official launcher, then update the path in Settings.
+                </p>
+                <div className="flex items-center gap-1 text-[9px] font-mono text-amber-400/70">
+                  <Download className="w-2.5 h-2.5" />
+                  <span>runescape.com/download</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* News header */}
         <div className="flex items-center gap-2 px-3 py-1.5 border-b border-nexus-border bg-nexus-bg/30 flex-shrink-0">
