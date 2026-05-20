@@ -4,40 +4,35 @@ import { join } from 'path'
 
 const RENDERER_HTML = join(__dirname, '../out/renderer/index.html')
 
-function readHtml(): string {
-  return readFileSync(RENDERER_HTML, 'utf-8')
-}
-
-describe('Production renderer build', () => {
-  it('out/renderer/index.html exists', () => {
-    expect(existsSync(RENDERER_HTML)).toBe(true)
-  })
+// Skip the entire suite when the renderer hasn't been built yet.
+// The CI "Unit Tests" job runs npm test before electron-vite build,
+// so out/renderer/index.html does not exist there.
+// These checks run in the "Build Windows App" job after the build step.
+describe.skipIf(!existsSync(RENDERER_HTML))('Production renderer build', () => {
+  function readHtml(): string {
+    return readFileSync(RENDERER_HTML, 'utf-8')
+  }
 
   it('has no crossorigin attribute (required for file:// protocol)', () => {
-    const html = readHtml()
-    expect(html).not.toContain(' crossorigin')
+    expect(readHtml()).not.toContain(' crossorigin')
   })
 
   it('uses relative asset paths (./assets/) not absolute (/assets/)', () => {
     const html = readHtml()
-    // No src="/..." or href="/..."
     expect(html).not.toMatch(/\bsrc="\//)
     expect(html).not.toMatch(/\bhref="\//)
   })
 
   it('contains ./assets/ references', () => {
-    const html = readHtml()
-    expect(html).toContain('./assets/')
+    expect(readHtml()).toContain('./assets/')
   })
 
   it('references a bundled JS module', () => {
-    const html = readHtml()
-    expect(html).toMatch(/src="\.\/assets\/[^"]+\.js"/)
+    expect(readHtml()).toMatch(/src="\.\/assets\/[^"]+\.js"/)
   })
 
   it('references a bundled CSS file', () => {
-    const html = readHtml()
-    expect(html).toMatch(/href="\.\/assets\/[^"]+\.css"/)
+    expect(readHtml()).toMatch(/href="\.\/assets\/[^"]+\.css"/)
   })
 
   it('has the correct Content-Security-Policy for RS3 APIs', () => {
@@ -47,7 +42,6 @@ describe('Production renderer build', () => {
   })
 
   it('has a <div id="root"> mount point', () => {
-    const html = readHtml()
-    expect(html).toContain('<div id="root">')
+    expect(readHtml()).toContain('<div id="root">')
   })
 })
